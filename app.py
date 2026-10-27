@@ -1,4 +1,7 @@
+from flask import Flask, render_template, request, jsonify
 import random
+
+app = Flask(__name__)
 
 
 def create_deck():
@@ -39,132 +42,137 @@ def calculate_score(hand):
     return score
 
 
-def show_hand(name, hand):
-    print(f"\n{name}'s hand:")
-
-    for rank, suit in hand:
-        print(f"{rank} of {suit}")
-
-    print(f"Score: {calculate_score(hand)}")
+def card_data(card):
+    return {
+        "rank": card[0],
+        "suit": card[1]
+    }
 
 
-def play_game():
+def new_game(bet):
+    deck = create_deck()
 
-    print("================================")
-    print("       🃏 BLACKJACK 🃏")
-    print("================================")
-    print("Get as close to 21 as possible.")
-    print("Starting balance: 1000 virtual tokens")
-    print("================================\n")
+    player_hand = [deck.pop(), deck.pop()]
+    dealer_hand = [deck.pop(), deck.pop()]
 
-    balance = 1000
-
-    while balance > 0:
-
-        print(f"Current Balance: {balance} tokens")
-
-        # Get bet
-        try:
-            bet = int(input(f"Enter your bet (1-{balance}): "))
-        except ValueError:
-            print("❌ Enter a valid number.\n")
-            continue
-
-        if bet <= 0 or bet > balance:
-            print("❌ Invalid bet amount.\n")
-            continue
-
-        # Create and shuffle deck
-        deck = create_deck()
-
-        # Deal cards
-        player_hand = [deck.pop(), deck.pop()]
-        dealer_hand = [deck.pop(), deck.pop()]
-
-        show_hand("Your", player_hand)
-
-        print("\nDealer's hand:")
-        print(f"{dealer_hand[0][0]} of {dealer_hand[0][1]}")
-        print("Hidden card")
-
-        # Check for blackjack
-        player_score = calculate_score(player_hand)
-
-        if player_score == 21:
-
-            print("\n🎉 BLACKJACK!")
-
-            balance += bet
-            print(f"You won {bet} tokens.")
-
-        else:
-
-            # Player's turn
-            while True:
-
-                choice = input("\nChoose Hit or Stand (h/s): ").lower().strip()
-
-                if choice == "h":
-
-                    player_hand.append(deck.pop())
-                    show_hand("Your", player_hand)
-
-                    player_score = calculate_score(player_hand)
-
-                    if player_score > 21:
-                        print("\n💥 Bust! You went over 21.")
-                        balance -= bet
-                        break
-
-                elif choice == "s":
-                    break
-
-                else:
-                    print("❌ Enter h for Hit or s for Stand.")
-
-            # Continue only if player did not bust
-            if player_score <= 21:
-
-                # Dealer's turn
-                while calculate_score(dealer_hand) < 17:
-                    dealer_hand.append(deck.pop())
-
-                show_hand("Dealer", dealer_hand)
-
-                dealer_score = calculate_score(dealer_hand)
-
-                # Decide winner
-                if dealer_score > 21:
-                    print("\n🎉 Dealer busted! You win!")
-                    balance += bet
-
-                elif player_score > dealer_score:
-                    print("\n🎉 You win!")
-                    balance += bet
-
-                elif player_score < dealer_score:
-                    print("\n❌ Dealer wins!")
-                    balance -= bet
-
-                else:
-                    print("\n🤝 It's a tie!")
-                    print("Your bet is returned.")
-
-        print(f"New Balance: {balance} tokens\n")
-
-        if balance == 0:
-            print("💥 You have no tokens left.")
-            print("Game Over!")
-            break
-
-        play_again = input("Play again? (y/n): ").lower().strip()
-
-        if play_again != "y":
-            print("\n================================")
-            print(f"Final Balance: {balance} tokens")
-            print("Thanks for playing!")
-            print("================================")
-            break
+    return {
+        "deck": deck,
+        "player_hand": player_hand,
+        "dealer_hand": dealer_hand,
+        "bet": bet,
+        "game_over": False
+    }
 
 
-play_game()
+def get_game_data(game, hide_dealer=True):
+    player_hand = game["player_hand"]
+    dealer_hand = game["dealer_hand"]
+
+    data = {
+        "player_cards": [card_data(card) for card in player_hand],
+        "player_score": calculate_score(player_hand),
+        "bet": game["bet"],
+        "game_over": game["game_over"]
+    }
+
+    if hide_dealer:
+        data["dealer_cards"] = [
+            card_data(dealer_hand[0]),
+            {"hidden": True}
+        ]
+        data["dealer_score"] = "?"
+    else:
+        data["dealer_cards"] = [
+            card_data(card) for card in dealer_hand
+        ]
+        data["dealer_score"] = calculate_score(dealer_hand)
+
+    return data
+
+
+@app.route("/")
+def home():
+    return render_template("index.html")
+
+
+@app.route("/start", methods=["POST"])
+def start():
+    data = request.json
+    bet = int(data["bet"])
+
+    game = new_game(bet)
+
+    player_score = calculate_score(game["player_hand"])
+
+    if player_score == 21:
+        game["game_over"] = True
+        result = "blackjack"
+        return jsonify({
+            **get_game_data(game, False),
+            "result": result
+        })
+
+    return jsonify(get_game_data(game))
+
+
+@app.route("/hit", methods=["POST"])
+def hit():
+    data = request.json
+    game = data["game"]
+
+    game["deck"] = [tuple(card) for card in game["deck"]]
+    game["player_hand"] = [tuple(card) for card in game["player_hand"]]
+    game["dealer_hand"] = [tuple(card) for card in game["dealer_hand"]]
+
+    game["player_hand"].append(game["deck"].pop())
+
+    score = calculate_score(game["player_hand"])
+
+    if score > 21:
+        game["game_over"] = True
+
+        return jsonify({
+            **get_game_data(game, False),
+            "result": "bust"
+        })
+
+    return jsonify(get_game_data(game))
+
+
+@app.route("/stand", methods=["POST"])
+def stand():
+    data = request.json
+    game = data["game"]
+
+    game["deck"] = [tuple(card) for card in game["deck"]]
+    game["player_hand"] = [tuple(card) for card in game["player_hand"]]
+    game["dealer_hand"] = [tuple(card) for card in game["dealer_hand"]]
+
+    while calculate_score(game["dealer_hand"]) < 17:
+        game["dealer_hand"].append(game["deck"].pop())
+
+    player_score = calculate_score(game["player_hand"])
+    dealer_score = calculate_score(game["dealer_hand"])
+
+    game["game_over"] = True
+
+    if dealer_score > 21:
+        result = "dealer_bust"
+
+    elif player_score > dealer_score:
+        result = "win"
+
+    elif player_score < dealer_score:
+        result = "lose"
+
+    else:
+        result = "tie"
+
+    return jsonify({
+        **get_game_data(game, False),
+        "result": result
+    })
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
