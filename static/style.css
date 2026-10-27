@@ -1,0 +1,135 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: #071b12;
+    color: white;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.game-container {
+    width: 90%;
+    max-width: 900px;
+    text-align: center;
+}
+
+h1 {
+    font-size: 42px;
+    margin-bottom: 15px;
+}
+
+.balance {
+    font-size: 20px;
+    margin-bottom: 25px;
+}
+
+#balance {
+    font-weight: bold;
+}
+
+#setup {
+    background: #0d3322;
+    padding: 30px;
+    border-radius: 15px;
+}
+
+input {
+    padding: 12px;
+    width: 200px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    margin: 15px;
+}
+
+button {
+    padding: 12px 25px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+button:hover {
+    transform: scale(1.05);
+}
+
+.table {
+    background: #0d5c35;
+    border-radius: 25px;
+    padding: 35px;
+    min-height: 500px;
+}
+
+.dealer-section,
+.player-section {
+    margin: 20px;
+}
+
+.cards {
+    min-height: 110px;
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin: 15px;
+}
+
+.card {
+    width: 75px;
+    height: 105px;
+    background: white;
+    color: black;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-size: 22px;
+    font-weight: bold;
+    box-shadow: 0 4px 8px black;
+}
+
+.card.red {
+    color: red;
+}
+
+.hidden-card {
+    background: #222;
+    color: white;
+    border: 3px solid white;
+}
+
+.message {
+    font-size: 24px;
+    font-weight: bold;
+    margin: 20px;
+}
+
+.controls {
+    margin-top: 20px;
+}
+
+.controls button {
+    margin: 5px;
+}
+
+.new-game {
+    margin-top: 20px;
+}
+
+.hidden {
+    display: none;
+}
+
+p {
+    font-size: 18px;
+    margin-top: 10px;
+}
